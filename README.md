@@ -1,97 +1,56 @@
 # 🎵 Telegram Music Bot
 
-Скачивает музыку по ссылке или названию. Поддерживает YouTube, TikTok, Instagram,
-VK, SoundCloud, Spotify и другие. Для TikTok/Instagram распознаёт трек через Shazam
-и находит полную версию.
+Продвинутый музыкальный бот для Telegram с поддержкой множества платформ и автоматическим распознаванием треков через Shazam.
 
----
+## ✨ Возможности
 
-## Деплой на Railway
+- 🔗 **Скачивание по ссылке** — YouTube, TikTok, Instagram, VK, SoundCloud, Spotify и другие
+- 🔍 **Поиск по названию** — на любом языке через YouTube Music
+- 🎧 **Shazam интеграция** — автоматическое распознавание треков из TikTok/Instagram и поиск полной версии
+- ⚡ **Стабильная работа** — rate limiting, таймауты, автоочистка памяти
 
-### 1. Создать бота
-1. Открой [@BotFather](https://t.me/BotFather) → `/newbot`
-2. Скопируй токен
+## 📋 Поддерживаемые платформы
 
-### 2. Загрузить код
-```bash
-git init
-git add .
-git commit -m "init"
-```
+| Платформа | Ссылка | Поиск | Shazam |
+|-----------|--------|-------|--------|
+| YouTube   | ✅     | ✅    | —      |
+| TikTok    | ✅     | —     | ✅     |
+| Instagram | ✅     | —     | ✅     |
+| VK        | ✅     | —     | —      |
+| SoundCloud| ✅     | —     | —      |
+| Twitter/X | ✅     | —     | ✅     |
+| Facebook  | ✅     | —     | ✅     |
+| Spotify   | ✅     | —     | —      |
+| Bandcamp  | ✅     | —     | —      |
+| OK.ru     | ✅     | —     | —      |
+| Dailymotion | ✅   | —     | —      |
 
-Создай репо на GitHub и запушь:
-```bash
-git remote add origin https://github.com/YOU/music-bot.git
-git push -u origin main
-```
+## 🛡️ Защита и стабильность
 
-### 3. Задеплоить на Railway
-1. Зайди на [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Выбери репозиторий
-3. Перейди в **Variables** и добавь:
+- **Rate limiting** — 5 запросов в минуту на пользователя
+- **Таймауты** — 120 секунд на операцию (защита от зависаний)
+- **Проверка размера** — отклонение файлов >50 МБ (лимит Telegram)
+- **Автоочистка памяти** — результаты поиска удаляются через 10 минут
+- **Graceful error handling** — понятные сообщения об ошибках
 
-| Key | Value |
-|-----|-------|
-| `BOT_TOKEN` | `123456:ABC-токен_от_BotFather` |
-
-4. Railway автоматически соберёт Docker-образ и запустит бота.
-
----
-
-## Локальный запуск
-
-```bash
-# установить зависимости
-pip install -r requirements.txt
-
-# установить ffmpeg (Ubuntu/Debian)
-sudo apt install ffmpeg
-
-# запустить
-BOT_TOKEN=ВАШ_ТОКЕН python bot.py
-```
-
----
-
-## Поддерживаемые платформы
-
-| Платформа | Ссылка | Поиск + Shazam |
-|-----------|--------|----------------|
-| YouTube   | ✅     | ✅             |
-| TikTok    | ✅     | ✅ (Shazam)    |
-| Instagram | ✅     | ✅ (Shazam)    |
-| VK        | ✅     | —              |
-| SoundCloud| ✅     | —              |
-| Twitter/X | ✅     | ✅ (Shazam)    |
-| Facebook  | ✅     | ✅ (Shazam)    |
-| OK.ru     | ✅     | —              |
-| Bandcamp  | ✅     | —              |
-| Dailymotion | ✅   | —              |
-
-Поиск по названию работает через **YouTube Music** — поддерживает русские,
-казахские, английские и другие языки.
-
----
-
-## Cookies (опционально)
-
-Если yt-dlp не может скачать из-за ограничений (возраст, геоблок):
-
-1. Установи расширение [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/)
-2. Экспортируй cookies для нужного сайта
-3. Положи файл рядом с ботом как `cookies.txt`
-
----
-
-## Структура проекта
+## 📁 Структура проекта
 
 ```
-music_bot/
-├── bot.py           # Telegram-бот, все хендлеры
-├── downloader.py    # yt-dlp + YouTube Music поиск
-├── shazam_client.py # Распознавание треков (shazamio)
-├── requirements.txt
-├── Dockerfile
-├── railway.toml
-└── .gitignore
+AAAmusicbot/
+├── bot.py              # Основной файл бота
+├── downloader.py       # Логика скачивания (yt-dlp + ytmusicapi)
+├── shazam_client.py    # Распознавание треков через Shazam
+├── requirements.txt    # Python зависимости
+├── Dockerfile          # Docker конфигурация
+├── railway.toml        # Railway конфигурация
+├── .gitignore
+└── README.md
 ```
+
+## 🔧 Технологии
+
+- [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) — Telegram Bot API
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — Скачивание медиа
+- [ytmusicapi](https://github.com/sigma67/ytmusicapi) — Поиск музыки
+- [shazamio](https://github.com/dotX12/ShazamIO) — Распознавание треков
+- [ffmpeg](https://ffmpeg.org/) — Конвертация аудио
