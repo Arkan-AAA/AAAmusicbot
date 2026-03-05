@@ -1,0 +1,12 @@
+downloads/
+*.mp3
+*.m4a
+*.webm
+*.opus
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
