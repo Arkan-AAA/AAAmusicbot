@@ -1,8 +1,11 @@
 FROM python:3.12-slim
 
-# ffmpeg — required by yt-dlp for audio extraction
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
+    ffmpeg nodejs npm \
+    chromium chromium-driver \
+    ca-certificates fonts-liberation libnss3 libatk-bridge2.0-0 \
+    libx11-6 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 \
+    && npm install -g youtube-po-token-generator \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

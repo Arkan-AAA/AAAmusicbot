@@ -1,7 +1,10 @@
 import asyncio
+import json
 import logging
 import os
 import re
+import subprocess
+import time
 from pathlib import Path
 
 import yt_dlp
@@ -32,12 +35,52 @@ YTDLP_BASE_OPTS = {
     "quiet":       True,
     "no_warnings": True,
     "noprogress":  True,
-    "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
 }
+
+# PO Token cache: {"po_token": ..., "visitor_data": ..., "expires": ...}
+_pot_cache: dict = {}
+_POT_TTL = 3600  # regenerate every hour
+
+
+def _get_po_token() -> dict:
+    """Generate PO Token via youtube-po-token-generator (Node.js)."""
+    global _pot_cache
+    if _pot_cache and time.time() < _pot_cache.get("expires", 0):
+        return _pot_cache
+    try:
+        result = subprocess.run(
+            ["youtube-po-token-generator"],
+            capture_output=True, text=True, timeout=30
+        )
+        data = json.loads(result.stdout)
+        _pot_cache = {
+            "po_token":    data["poToken"],
+            "visitor_data": data["visitorData"],
+            "expires":     time.time() + _POT_TTL,
+        }
+        logger.info("PO Token refreshed")
+    except Exception as e:
+        logger.warning(f"PO Token generation failed: {e}")
+        _pot_cache = {}
+    return _pot_cache
+
+
+def _yt_opts() -> dict:
+    """Build YouTube extractor args with PO Token if available."""
+    pot = _get_po_token()
+    extractor_args = {
+        "player_client": ["tv_embedded", "ios"],
+        "player_skip":   ["webpage", "configs"],
+    }
+    if pot.get("po_token"):
+        extractor_args["po_token"] = [f"web+{pot['po_token']}"]
+    opts = {"extractor_args": {"youtube": extractor_args}}
+    if pot.get("visitor_data"):
+        opts["http_headers"] = {"X-Goog-Visitor-Id": pot["visitor_data"]}
+    return opts
 
 
 def _cookies_opts() -> dict:
-    """Add cookie file if available (helps with auth-gated content)."""
     if os.path.exists("cookies.txt"):
         return {"cookiefile": "cookies.txt"}
     return {}
@@ -64,6 +107,7 @@ class MusicDownloader:
     async def download_raw_audio(self, url: str, output_dir: str) -> str | None:
         opts = {
             **YTDLP_BASE_OPTS,
+            **_yt_opts(),
             **_cookies_opts(),
             "format": AUDIO_FORMAT,
             "outtmpl": f"{output_dir}/raw.%(ext)s",
@@ -77,6 +121,7 @@ class MusicDownloader:
     async def extract_audio(self, url: str, output_dir: str) -> str | None:
         opts = {
             **YTDLP_BASE_OPTS,
+            **_yt_opts(),
             **_cookies_opts(),
             "format": AUDIO_FORMAT,
             "outtmpl": f"{output_dir}/audio.%(ext)s",
@@ -93,7 +138,7 @@ class MusicDownloader:
     # ─────────────────────────────────────────
 
     async def get_meta(self, url: str) -> dict:
-        opts = {**YTDLP_BASE_OPTS, "skip_download": True}
+        opts = {**YTDLP_BASE_OPTS, **_yt_opts(), "skip_download": True}
         try:
             def _fetch():
                 with yt_dlp.YoutubeDL(opts) as ydl:
