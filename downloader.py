@@ -229,6 +229,9 @@ class MusicDownloader:
     def _ydl_download(url: str, opts: dict, output_dir: str) -> str | None:
         try:
             print(f"[ydl] cookiefile={opts.get('cookiefile')}, format={opts.get('format')}", flush=True)
+            info_opts = {**opts, "skip_download": True, "listformats": True}
+            with yt_dlp.YoutubeDL(info_opts) as ydl:
+                ydl.extract_info(url, download=False)
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
             files = sorted(Path(output_dir).iterdir(), key=lambda f: f.stat().st_mtime)
