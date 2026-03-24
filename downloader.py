@@ -47,8 +47,8 @@ _b64 = os.environ.get("COOKIES_B64", "")
 print(f"[cookies] COOKIES_B64 present: {bool(_b64)}, cookies.txt exists: {os.path.exists(_COOKIES_PATH)}")
 if not os.path.exists(_COOKIES_PATH) and _b64:
     import base64
-    with open(_COOKIES_PATH, "w") as _f:
-        _f.write(base64.b64decode(_b64).decode())
+    with open(_COOKIES_PATH, "wb") as _f:
+        _f.write(base64.b64decode(_b64.strip()))
     print("[cookies] cookies.txt written from COOKIES_B64")
 
 
