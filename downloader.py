@@ -30,7 +30,7 @@ PLATFORM_MAP = {
 }
 
 # yt-dlp format selectors
-AUDIO_FORMAT    = "bestaudio[ext=m4a]/bestaudio/best"
+AUDIO_FORMAT    = "bestaudio/best"
 YTDLP_BASE_OPTS = {
     "quiet":       True,
     "no_warnings": True,
@@ -123,7 +123,7 @@ class MusicDownloader:
             **_yt_opts(),
             **_cookies_opts(),
             "format": AUDIO_FORMAT,
-            "outtmpl": f"{output_dir}/audio.%(ext)s",
+            "outtmpl": f"{output_dir}/%(title)s.%(ext)s",
             "postprocessors": [{
                 "key":              "FFmpegExtractAudio",
                 "preferredcodec":   "mp3",
