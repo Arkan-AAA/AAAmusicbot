@@ -70,8 +70,9 @@ def _yt_opts() -> dict:
 
 
 def _cookies_opts() -> dict:
-    if os.path.exists("cookies.txt"):
-        return {"cookiefile": "cookies.txt"}
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+    if os.path.exists(path):
+        return {"cookiefile": path}
     return {}
 
 
