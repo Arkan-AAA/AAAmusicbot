@@ -41,6 +41,16 @@ YTDLP_BASE_OPTS = {
 _pot_cache: dict = {}
 _POT_TTL = 3600  # regenerate every hour
 
+# Write cookies.txt from env var if not present
+_COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+if not os.path.exists(_COOKIES_PATH):
+    _b64 = os.environ.get("COOKIES_B64")
+    if _b64:
+        import base64
+        with open(_COOKIES_PATH, "w") as _f:
+            _f.write(base64.b64decode(_b64).decode())
+        logger.info("cookies.txt written from COOKIES_B64")
+
 
 def _get_po_token() -> dict:
     """Generate PO Token via youtube-po-token-generator (Node.js)."""
@@ -70,15 +80,8 @@ def _yt_opts() -> dict:
 
 
 def _cookies_opts() -> dict:
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
-    if not os.path.exists(path):
-        b64 = os.environ.get("COOKIES_B64")
-        if b64:
-            import base64
-            with open(path, "w") as f:
-                f.write(base64.b64decode(b64).decode())
-    if os.path.exists(path):
-        return {"cookiefile": path}
+    if os.path.exists(_COOKIES_PATH):
+        return {"cookiefile": _COOKIES_PATH}
     return {}
 
 
