@@ -44,7 +44,7 @@ _POT_TTL = 3600  # regenerate every hour
 # Write cookies.txt from env var if not present
 _COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 _b64 = os.environ.get("COOKIES_B64", "")
-print(f"[cookies] path={_COOKIES_PATH}, exists={os.path.exists(_COOKIES_PATH)}, COOKIES_B64={bool(_b64)}")
+print(f"[cookies] path={_COOKIES_PATH}, exists={os.path.exists(_COOKIES_PATH)}, COOKIES_B64={bool(_b64)}", flush=True)
 if not os.path.exists(_COOKIES_PATH) and _b64:
     import base64
     with open(_COOKIES_PATH, "wb") as _f:
