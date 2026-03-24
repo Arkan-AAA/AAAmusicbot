@@ -69,8 +69,7 @@ def _yt_opts() -> dict:
     """Build YouTube extractor args with PO Token if available."""
     pot = _get_po_token()
     extractor_args = {
-        "player_client": ["tv_embedded", "ios"],
-        "player_skip":   ["webpage", "configs"],
+        "player_client": ["mweb", "android", "tv_embedded", "ios"],
     }
     if pot.get("po_token"):
         extractor_args["po_token"] = [f"web+{pot['po_token']}"]
