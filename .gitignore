@@ -11,4 +11,3 @@ venv/
 *.egg-info/
 .pytest_cache/
 .idea/
-cookies.txt
