@@ -66,17 +66,7 @@ def _get_po_token() -> dict:
 
 
 def _yt_opts() -> dict:
-    """Build YouTube extractor args with PO Token if available."""
-    pot = _get_po_token()
-    extractor_args = {
-        "player_client": ["mweb", "android", "tv_embedded", "ios"],
-    }
-    if pot.get("po_token"):
-        extractor_args["po_token"] = [f"web+{pot['po_token']}"]
-    opts = {"extractor_args": {"youtube": extractor_args}}
-    if pot.get("visitor_data"):
-        opts["http_headers"] = {"X-Goog-Visitor-Id": pot["visitor_data"]}
-    return opts
+    return {}
 
 
 def _cookies_opts() -> dict:
