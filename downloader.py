@@ -76,13 +76,17 @@ def _get_po_token() -> dict:
 
 
 def _yt_opts() -> dict:
-    return {
+    opts = {
         "extractor_args": {
             "youtube": {
                 "player_client": ["android", "web"],
             }
         }
     }
+    proxy = os.environ.get("PROXY_URL")
+    if proxy:
+        opts["proxy"] = proxy
+    return opts
 
 
 def _cookies_opts() -> dict:
