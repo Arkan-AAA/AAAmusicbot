@@ -43,13 +43,13 @@ _POT_TTL = 3600  # regenerate every hour
 
 # Write cookies.txt from env var if not present
 _COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
-if not os.path.exists(_COOKIES_PATH):
-    _b64 = os.environ.get("COOKIES_B64")
-    if _b64:
-        import base64
-        with open(_COOKIES_PATH, "w") as _f:
-            _f.write(base64.b64decode(_b64).decode())
-        logger.info("cookies.txt written from COOKIES_B64")
+_b64 = os.environ.get("COOKIES_B64", "")
+print(f"[cookies] COOKIES_B64 present: {bool(_b64)}, cookies.txt exists: {os.path.exists(_COOKIES_PATH)}")
+if not os.path.exists(_COOKIES_PATH) and _b64:
+    import base64
+    with open(_COOKIES_PATH, "w") as _f:
+        _f.write(base64.b64decode(_b64).decode())
+    print("[cookies] cookies.txt written from COOKIES_B64")
 
 
 def _get_po_token() -> dict:
