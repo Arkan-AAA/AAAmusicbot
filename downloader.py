@@ -71,6 +71,12 @@ def _yt_opts() -> dict:
 
 def _cookies_opts() -> dict:
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+    if not os.path.exists(path):
+        b64 = os.environ.get("COOKIES_B64")
+        if b64:
+            import base64
+            with open(path, "w") as f:
+                f.write(base64.b64decode(b64).decode())
     if os.path.exists(path):
         return {"cookiefile": path}
     return {}
