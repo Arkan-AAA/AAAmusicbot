@@ -76,7 +76,13 @@ def _get_po_token() -> dict:
 
 
 def _yt_opts() -> dict:
-    return {}
+    return {
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+            }
+        }
+    }
 
 
 def _cookies_opts() -> dict:
