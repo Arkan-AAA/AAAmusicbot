@@ -35,6 +35,7 @@ YTDLP_BASE_OPTS = {
     "quiet":       True,
     "no_warnings": True,
     "noprogress":  True,
+    "remote_components": {"ejs:github"},
 }
 
 # PO Token cache: {"po_token": ..., "visitor_data": ..., "expires": ...}
@@ -78,14 +79,10 @@ def _yt_opts() -> dict:
     opts = {
         "extractor_args": {
             "youtube": {
-                "player_client": ["android"],
+                "player_client": ["tv_embedded", "android"],
             }
         }
     }
-    pot = _get_po_token()
-    if pot.get("po_token"):
-        opts["extractor_args"]["youtube"]["po_token"] = [f"web+{pot['po_token']}"]
-        opts["extractor_args"]["youtube"]["visitor_data"] = [pot["visitor_data"]]
     proxy = os.environ.get("PROXY_URL")
     if proxy:
         opts["proxy"] = proxy
