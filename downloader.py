@@ -44,12 +44,11 @@ _POT_TTL = 3600  # regenerate every hour
 # Write cookies.txt from env var if not present
 _COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 _b64 = os.environ.get("COOKIES_B64", "")
-print(f"[cookies] path={_COOKIES_PATH}, exists={os.path.exists(_COOKIES_PATH)}, COOKIES_B64={bool(_b64)}", flush=True)
 if not os.path.exists(_COOKIES_PATH) and _b64:
     import base64
     with open(_COOKIES_PATH, "wb") as _f:
         _f.write(base64.b64decode(_b64.strip()))
-    print("[cookies] cookies.txt written from COOKIES_B64")
+    logger.info("[cookies] cookies.txt written from COOKIES_B64")
 
 
 def _get_po_token() -> dict:
@@ -79,12 +78,15 @@ def _yt_opts() -> dict:
     opts = {
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "web"],
+                "player_client": ["android"],
             }
         }
     }
+    pot = _get_po_token()
+    if pot.get("po_token"):
+        opts["extractor_args"]["youtube"]["po_token"] = [f"web+{pot['po_token']}"]
+        opts["extractor_args"]["youtube"]["visitor_data"] = [pot["visitor_data"]]
     proxy = os.environ.get("PROXY_URL")
-    print(f"[proxy] PROXY_URL={proxy}", flush=True)
     if proxy:
         opts["proxy"] = proxy
     return opts
@@ -233,10 +235,6 @@ class MusicDownloader:
     @staticmethod
     def _ydl_download(url: str, opts: dict, output_dir: str) -> str | None:
         try:
-            print(f"[ydl] cookiefile={opts.get('cookiefile')}, format={opts.get('format')}", flush=True)
-            info_opts = {**opts, "skip_download": True, "listformats": True}
-            with yt_dlp.YoutubeDL(info_opts) as ydl:
-                ydl.extract_info(url, download=False)
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
             files = sorted(Path(output_dir).iterdir(), key=lambda f: f.stat().st_mtime)
