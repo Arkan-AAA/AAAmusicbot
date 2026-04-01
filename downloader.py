@@ -84,6 +84,7 @@ def _yt_opts() -> dict:
         }
     }
     proxy = os.environ.get("PROXY_URL")
+    print(f"[proxy] PROXY_URL={proxy}", flush=True)
     if proxy:
         opts["proxy"] = proxy
     return opts

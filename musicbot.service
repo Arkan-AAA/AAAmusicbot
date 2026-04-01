@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Music Bot
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/musicbot
+EnvironmentFile=/opt/musicbot/.env
+ExecStart=/opt/musicbot/venv/bin/python bot.py
+Restart=always
+RestartSec=5
+User=musicbot
+
+[Install]
+WantedBy=multi-user.target
