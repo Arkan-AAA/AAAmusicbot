@@ -30,7 +30,7 @@ PLATFORM_MAP = {
 }
 
 # yt-dlp format selectors
-AUDIO_FORMAT    = "bestaudio/best"
+AUDIO_FORMAT    = "bestaudio[ext=m4a]/bestaudio/best"
 YTDLP_BASE_OPTS = {
     "quiet":       True,
     "no_warnings": True,
