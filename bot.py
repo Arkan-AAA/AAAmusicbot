@@ -193,7 +193,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await query.edit_message_text(
-        f"📥 Скачиваю: *{track['artist']} — {track['title']}*...",
+        f"📥 Скачиваю: *{track['artist']} — {track['title']}*...\n⏳ Обычно занимает 20-30 сек",
         parse_mode="Markdown"
     )
 

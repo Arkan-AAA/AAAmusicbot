@@ -1,14 +1,19 @@
 import asyncio
-import json
 import logging
 import os
 import re
 import subprocess
 import time
 from pathlib import Path
+OAUTH2_PASSWORD = os.environ.get("YOUTUBE_OAUTH2_PASSWORD", "")
 
 import yt_dlp
 from ytmusicapi import YTMusic
+
+# Ensure deno is in PATH for yt-dlp JS challenge solving
+_DENO_BIN = os.path.expanduser("~/.deno/bin")
+if _DENO_BIN not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = _DENO_BIN + ":" + os.environ.get("PATH", "")
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +43,6 @@ YTDLP_BASE_OPTS = {
     "remote_components": {"ejs:github"},
 }
 
-# PO Token cache: {"po_token": ..., "visitor_data": ..., "expires": ...}
-_pot_cache: dict = {}
-_POT_TTL = 3600  # regenerate every hour
-
 # Write cookies.txt from env var if not present
 _COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 _b64 = os.environ.get("COOKIES_B64", "")
@@ -52,36 +53,14 @@ if not os.path.exists(_COOKIES_PATH) and _b64:
     logger.info("[cookies] cookies.txt written from COOKIES_B64")
 
 
-def _get_po_token() -> dict:
-    """Generate PO Token via youtube-po-token-generator (Node.js)."""
-    global _pot_cache
-    if _pot_cache and time.time() < _pot_cache.get("expires", 0):
-        return _pot_cache
-    try:
-        result = subprocess.run(
-            ["youtube-po-token-generator"],
-            capture_output=True, text=True, timeout=30
-        )
-        data = json.loads(result.stdout)
-        _pot_cache = {
-            "po_token":    data["poToken"],
-            "visitor_data": data["visitorData"],
-            "expires":     time.time() + _POT_TTL,
-        }
-        logger.info("PO Token refreshed")
-    except Exception as e:
-        logger.warning(f"PO Token generation failed: {e}")
-        _pot_cache = {}
-    return _pot_cache
-
 
 def _yt_opts() -> dict:
     opts = {
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv_embedded", "android"],
+                "player_client": ["web", "mweb"],
             }
-        }
+        },
     }
     proxy = os.environ.get("PROXY_URL")
     if proxy:
