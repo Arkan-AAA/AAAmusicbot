@@ -1,16 +1,15 @@
 import asyncio
+import json
 import logging
 import os
 import re
 import subprocess
 import time
 from pathlib import Path
-OAUTH2_PASSWORD = os.environ.get("YOUTUBE_OAUTH2_PASSWORD", "")
 
 import yt_dlp
 from ytmusicapi import YTMusic
 
-# Ensure deno is in PATH for yt-dlp JS challenge solving
 _DENO_BIN = os.path.expanduser("~/.deno/bin")
 if _DENO_BIN not in os.environ.get("PATH", ""):
     os.environ["PATH"] = _DENO_BIN + ":" + os.environ.get("PATH", "")
@@ -34,16 +33,44 @@ PLATFORM_MAP = {
     "Mixcloud":     r"mixcloud\.com",
 }
 
-# yt-dlp format selectors
-AUDIO_FORMAT    = "bestaudio[ext=m4a]/bestaudio/best"
+AUDIO_FORMAT = "bestaudio[ext=m4a]/bestaudio/best"
 YTDLP_BASE_OPTS = {
     "quiet":       True,
     "no_warnings": True,
     "noprogress":  True,
-    "remote_components": {"ejs:github"},
 }
 
-# Write cookies.txt from env var if not present
+INVIDIOUS_INSTANCES = [
+    "https://inv.nadeko.net",
+    "https://invidious.privacydev.net",
+    "https://yt.artemislena.eu",
+]
+
+# ─── PO Token cache ───────────────────────────────────────
+_po_cache: dict = {"token": None, "ts": 0.0}
+_PO_TOKEN_TTL = 3600  # секунд
+
+def _get_po_token() -> str | None:
+    now = time.time()
+    if _po_cache["token"] and now - _po_cache["ts"] < _PO_TOKEN_TTL:
+        return _po_cache["token"]
+    try:
+        result = subprocess.run(
+            ["youtube-po-token-generator"],
+            capture_output=True, text=True, timeout=30
+        )
+        data = json.loads(result.stdout)
+        token = data.get("poToken") or data.get("po_token")
+        if token:
+            _po_cache["token"] = token
+            _po_cache["ts"] = now
+            logger.info("PO Token refreshed")
+        return token
+    except Exception as e:
+        logger.warning(f"PO Token generation failed: {e}")
+        return None
+
+# ─── Cookies ──────────────────────────────────────────────
 _COOKIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 _b64 = os.environ.get("COOKIES_B64", "")
 if not os.path.exists(_COOKIES_PATH) and _b64:
@@ -53,18 +80,23 @@ if not os.path.exists(_COOKIES_PATH) and _b64:
     logger.info("[cookies] cookies.txt written from COOKIES_B64")
 
 
-
 def _yt_opts() -> dict:
-    opts = {
+    opts: dict = {
         "extractor_args": {
             "youtube": {
                 "player_client": ["web", "mweb"],
             }
         },
     }
+    token = _get_po_token()
+    if token:
+        opts["extractor_args"]["youtube"]["po_token"] = [f"web+{token}"]
+        logger.debug("PO Token attached to request")
+
     proxy = os.environ.get("PROXY_URL")
     if proxy:
         opts["proxy"] = proxy
+
     return opts
 
 
@@ -78,19 +110,11 @@ class MusicDownloader:
     def __init__(self):
         self.ytmusic = YTMusic()
 
-    # ─────────────────────────────────────────
-    # Platform detection
-    # ─────────────────────────────────────────
-
     def detect_platform(self, url: str) -> str:
         for name, pattern in PLATFORM_MAP.items():
             if re.search(pattern, url, re.IGNORECASE):
                 return name
         return "Unknown"
-
-    # ─────────────────────────────────────────
-    # Download: raw audio (no conversion) — for Shazam
-    # ─────────────────────────────────────────
 
     async def download_raw_audio(self, url: str, output_dir: str) -> str | None:
         opts = {
@@ -101,10 +125,6 @@ class MusicDownloader:
             "outtmpl": f"{output_dir}/raw.%(ext)s",
         }
         return await asyncio.to_thread(self._ydl_download, url, opts, output_dir)
-
-    # ─────────────────────────────────────────
-    # Download: convert to mp3 — final delivery
-    # ─────────────────────────────────────────
 
     async def extract_audio(self, url: str, output_dir: str) -> str | None:
         opts = {
@@ -121,10 +141,6 @@ class MusicDownloader:
         }
         return await asyncio.to_thread(self._ydl_download, url, opts, output_dir)
 
-    # ─────────────────────────────────────────
-    # Get metadata without downloading
-    # ─────────────────────────────────────────
-
     async def get_meta(self, url: str) -> dict:
         opts = {**YTDLP_BASE_OPTS, **_yt_opts(), "skip_download": True}
         try:
@@ -138,10 +154,6 @@ class MusicDownloader:
             }
         except Exception:
             return {}
-
-    # ─────────────────────────────────────────
-    # Search (YouTube Music first, yt-dlp fallback)
-    # ─────────────────────────────────────────
 
     async def search_track(self, query: str, limit: int = 8) -> list[dict]:
         results = await self._ytmusic_search(query, limit)
@@ -196,17 +208,34 @@ class MusicDownloader:
             logger.error(f"yt-dlp search error: {e}")
             return []
 
-    # ─────────────────────────────────────────
-    # Download by track dict (from search results)
-    # ─────────────────────────────────────────
-
     async def download_by_id(self, track: dict, output_dir: str) -> str | None:
-        url = f"https://www.youtube.com/watch?v={track['id']}"
-        return await self.extract_audio(url, output_dir)
+        video_id = track["id"]
 
-    # ─────────────────────────────────────────
-    # Internal
-    # ─────────────────────────────────────────
+        # 1. Пробуем напрямую через YouTube
+        result = await self.extract_audio(
+            f"https://www.youtube.com/watch?v={video_id}", output_dir
+        )
+        if result:
+            return result
+
+        # 2. Fallback через Invidious (ротация инстансов)
+        logger.warning(f"YouTube blocked, trying Invidious for {video_id}")
+        for instance in INVIDIOUS_INSTANCES:
+            url = f"{instance}/watch?v={video_id}"
+            try:
+                result = await asyncio.wait_for(
+                    self.extract_audio(url, output_dir),
+                    timeout=60
+                )
+                if result:
+                    logger.info(f"Downloaded via Invidious: {instance}")
+                    return result
+            except asyncio.TimeoutError:
+                logger.warning(f"Invidious timeout: {instance}")
+            except Exception as e:
+                logger.warning(f"Invidious error ({instance}): {e}")
+
+        return None
 
     @staticmethod
     def _ydl_download(url: str, opts: dict, output_dir: str) -> str | None:
